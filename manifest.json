@@ -1,0 +1,17 @@
+{
+  "name": "리서치 회고",
+  "short_name": "리서치 회고",
+  "description": "UX 리서처를 위한 회고 메모 앱",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f0f10",
+  "theme_color": "#3ed598",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
