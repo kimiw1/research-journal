@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>리서치 회고 앱</title>
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.png">
 <meta name="theme-color" content="#3ed598">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -705,6 +705,95 @@
   }
   .toast svg { color: var(--mint); flex-shrink: 0; }
 
+  /* ===== DETAIL / EDIT SCREEN ===== */
+  .screen-detail {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--app-bg);
+    transform: translateX(100%);
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+    z-index: 30;
+  }
+  .screen-detail.open { transform: translateX(0); }
+
+  .detail-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 4px;
+  }
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    color: var(--mint);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 4px 0;
+  }
+  .delete-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-3);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 12px;
+    transition: color .16s, background .16s, border-color .16s;
+  }
+  .delete-btn:hover { color: #ff6b6b; background: rgba(255,100,100,.08); border-color: rgba(255,100,100,.25); }
+
+  /* ===== SYNC (구글 시트) SETTINGS ===== */
+  .sync-url-wrap {
+    border-top: 1px solid var(--border);
+    padding: 12px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sync-url-input {
+    width: 100%;
+    background: var(--surface-3);
+    border: 1px solid var(--border-2);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .sync-url-input:focus { border-color: rgba(69,224,162,.4); }
+  .sync-url-input::placeholder { color: var(--text-3); }
+  .sync-save-btn {
+    height: 40px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+    border-radius: 10px;
+    color: var(--text-2);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .16s;
+  }
+  .sync-save-btn:hover { background: var(--surface-3); color: var(--text); }
+  .sync-status {
+    font-size: 11.5px;
+    color: var(--text-3);
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .sync-status.ok { color: var(--mint); }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; animation: none !important; }
   }
@@ -716,7 +805,7 @@
   <!-- ======= TOAST ======= -->
   <div class="toast" id="toast">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-    회고가 저장됐어요
+    <span class="toast-msg">회고가 저장됐어요</span>
   </div>
 
   <div class="main">
@@ -984,7 +1073,104 @@
           </div>
         </div>
 
+        <div class="set-label">동기화</div>
+        <div class="set-card">
+          <div class="set-row" style="cursor:default;">
+            <span class="set-ic" style="background:rgba(69,224,162,.12);border-color:rgba(69,224,162,.2);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3ed598" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+            </span>
+            <div class="set-txt">
+              <div class="t">구글 시트 연동</div>
+              <div class="d">Apps Script URL을 입력하면 저장·수정·삭제 시 시트에 자동 기록됩니다.</div>
+            </div>
+          </div>
+          <div class="sync-url-wrap">
+            <input id="sheetsUrlInput" class="sync-url-input" type="url" placeholder="https://script.google.com/macros/s/.../exec">
+            <button id="sheetsUrlSave" class="sync-save-btn">URL 저장</button>
+            <div id="syncStatus" class="sync-status">연동되지 않음</div>
+          </div>
+        </div>
+
         <div class="app-foot"><span class="v">RESEARCH JOURNAL · v1.0.0</span></div>
+      </div>
+    </section>
+
+    <!-- ============ 상세/수정 화면 ============ -->
+    <section class="screen-detail" id="screen-detail">
+      <div class="topbar">
+        <div class="detail-nav">
+          <button class="back-btn" id="backBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            목록
+          </button>
+          <button class="delete-btn" id="deleteBtn">삭제</button>
+        </div>
+        <h1 style="margin-top:14px;">회고 수정</h1>
+        <p class="sub">내용을 수정하고 저장하세요.</p>
+      </div>
+      <div class="scroll" id="scroll-detail">
+
+        <div class="field-label">메모 <span class="pmark">// NOTE</span></div>
+        <div class="memo-card">
+          <textarea id="d-memoInput" placeholder="무엇을 발견했나요?" maxlength="2000"></textarea>
+          <div class="memo-meta">
+            <span class="hint">수정 중</span>
+            <span class="count"><span id="d-charCount">0</span> / 2000</span>
+          </div>
+        </div>
+
+        <div class="field-label">프로젝트 <span class="pmark">// PROJECT</span></div>
+        <label class="select-field">
+          <span class="proj-ic">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#45e0a2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 7l2-3h14l2 3M3 7v12a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7"/></svg>
+          </span>
+          <input id="d-projectInput" type="text" placeholder="프로젝트를 입력하세요">
+          <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </label>
+
+        <div class="field-label">프로젝트 기간 <span class="pmark">// PERIOD</span></div>
+        <div class="period-row">
+          <div class="period-select-wrap">
+            <select id="d-periodYear" class="period-select"></select>
+            <svg class="p-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="period-select-wrap">
+            <select id="d-periodMonth" class="period-select">
+              <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+              <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+              <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+            </select>
+            <svg class="p-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+
+        <div class="field-label">방법론 <span class="pmark">// METHOD</span></div>
+        <div class="chips" data-group="d-method">
+          <div class="chip" data-value="FGD"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="#06201c" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>FGD</div>
+          <div class="chip" data-value="IDI"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="#06201c" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>IDI</div>
+          <div class="chip" data-value="Survey"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="#06201c" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Survey</div>
+          <div class="chip" data-value="UT"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="#06201c" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>UT</div>
+          <div class="chip" data-value="기타"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="#06201c" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>기타</div>
+        </div>
+        <div class="etc-input" data-for="d-method"><div class="wrap"><span class="lead">+</span><input type="text" placeholder="방법론을 직접 입력하세요"></div></div>
+
+        <div class="field-label">수행 역할 <span class="pmark">// ROLE</span></div>
+        <div class="chips" data-group="d-role">
+          <div class="chip" data-value="설계"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="#06201c" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>설계</div>
+          <div class="chip" data-value="분석"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="#06201c" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>분석</div>
+          <div class="chip" data-value="기획"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="#06201c" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>기획</div>
+          <div class="chip" data-value="운영"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="#06201c" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>운영</div>
+          <div class="chip" data-value="기타"><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="#06201c" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>기타</div>
+        </div>
+        <div class="etc-input" data-for="d-role"><div class="wrap"><span class="lead">+</span><input type="text" placeholder="수행 역할을 직접 입력하세요"></div></div>
+
+      </div><!-- /scroll-detail -->
+      <div class="save-bar">
+        <button class="btn-primary" id="updateBtn">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#06201c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+          수정 저장하기
+        </button>
       </div>
     </section>
 
@@ -1025,91 +1211,175 @@
 
 <script>
   // ============================================================
-  // DB — localStorage 기반 데이터 레이어
+  // DB
   // ============================================================
-  const DB_KEY = 'research_journal_v1';
+  const DB_KEY    = 'research_journal_v1';
+  const SHEETS_KEY = 'rj_sheets_url';
 
   function getEntries() {
     try { return JSON.parse(localStorage.getItem(DB_KEY)) || []; }
     catch { return []; }
   }
-  function saveEntries(entries) {
-    localStorage.setItem(DB_KEY, JSON.stringify(entries));
-  }
+  function saveEntries(entries) { localStorage.setItem(DB_KEY, JSON.stringify(entries)); }
+
   function addEntry(entry) {
     const entries = getEntries();
     entries.unshift(entry);
     saveEntries(entries);
+    syncToSheets('add', entry);
+  }
+  function updateEntry(id, updates) {
+    const entries = getEntries();
+    const idx = entries.findIndex(e => e.id === id);
+    if (idx < 0) return;
+    entries[idx] = { ...entries[idx], ...updates };
+    saveEntries(entries);
+    syncToSheets('update', entries[idx]);
+  }
+  function deleteEntry(id) {
+    saveEntries(getEntries().filter(e => e.id !== id));
+    syncToSheets('delete', { id });
   }
   function toggleFav(id) {
-    const entries = getEntries();
-    const entry = entries.find(e => e.id === id);
-    if (entry) { entry.favorite = !entry.favorite; saveEntries(entries); }
+    const entry = getEntries().find(e => e.id === id);
+    if (entry) updateEntry(id, { favorite: !entry.favorite });
   }
 
   // ============================================================
-  // 날짜 포맷
+  // Google Sheets Sync
+  // ============================================================
+  function getSheetsUrl() { return localStorage.getItem(SHEETS_KEY) || ''; }
+  function syncToSheets(action, data) {
+    const url = getSheetsUrl();
+    if (!url) return;
+    fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({ action, entry: data }),
+      headers: { 'Content-Type': 'text/plain' },
+    }).catch(() => {});
+  }
+
+  // ============================================================
+  // Helpers
   // ============================================================
   function formatDate(isoString) {
     const d = new Date(isoString);
     const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,'0');
-    const dd = String(d.getDate()).padStart(2,'0');
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
     return `${y}.${m}.${dd} ${days[d.getDay()]}`;
   }
   function formatPeriod(year, month) {
     if (!year || !month) return null;
     return `${year}.${String(month).padStart(2,'0')}`;
   }
-
-  // ============================================================
-  // 저장 용량 계산
-  // ============================================================
   function getStorageSize() {
-    const raw = localStorage.getItem(DB_KEY) || '';
-    const bytes = new Blob([raw]).size;
+    const bytes = new Blob([localStorage.getItem(DB_KEY) || '']).size;
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
     return (bytes/(1024*1024)).toFixed(1) + ' MB';
   }
-
-  // ============================================================
-  // 기간 선택 초기화 (현재 년·월 기본값)
-  // ============================================================
-  function initPeriodSelects() {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    const yearSel = document.getElementById('periodYear');
-
-    for (let y = currentYear + 1; y >= 2018; y--) {
-      const opt = document.createElement('option');
-      opt.value = y;
-      opt.textContent = y + '년';
-      if (y === currentYear) opt.selected = true;
-      yearSel.appendChild(opt);
-    }
-    document.getElementById('periodMonth').value = currentMonth;
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
-  initPeriodSelects();
 
   // ============================================================
-  // 탭 전환
+  // Period selects init
+  // ============================================================
+  function initPeriodSelect(selId) {
+    const now = new Date(), cur = now.getFullYear();
+    const sel = document.getElementById(selId);
+    sel.innerHTML = '';
+    for (let y = cur+1; y >= 2018; y--) {
+      const o = document.createElement('option');
+      o.value = y; o.textContent = y + '년';
+      if (y === cur) o.selected = true;
+      sel.appendChild(o);
+    }
+  }
+  initPeriodSelect('periodYear');
+  initPeriodSelect('d-periodYear');
+  document.getElementById('periodMonth').value = new Date().getMonth() + 1;
+
+  // ============================================================
+  // Chip toggles (record + detail screens)
+  // ============================================================
+  function initChips(container) {
+    container.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        chip.classList.toggle('is-on');
+        if (chip.dataset.value === '기타') {
+          const group = chip.closest('.chips').dataset.group;
+          const box = container.querySelector(`.etc-input[data-for="${group}"]`);
+          if (!box) return;
+          const isOn = chip.classList.contains('is-on');
+          box.classList.toggle('show', isOn);
+          const inp = box.querySelector('input');
+          if (isOn) setTimeout(() => inp.focus(), 60); else inp.value = '';
+        }
+      });
+    });
+  }
+  initChips(document.getElementById('screen-record'));
+  initChips(document.getElementById('screen-detail'));
+
+  // ============================================================
+  // Char counters
+  // ============================================================
+  ['memoInput/charCount', 'd-memoInput/d-charCount'].forEach(pair => {
+    const [taId, cntId] = pair.split('/');
+    const ta = document.getElementById(taId), cnt = document.getElementById(cntId);
+    ta.addEventListener('input', () => { cnt.textContent = ta.value.length; });
+  });
+
+  // ============================================================
+  // Chip helpers
+  // ============================================================
+  const KNOWN_METHODS = ['FGD','IDI','Survey','UT'];
+  const KNOWN_ROLES   = ['설계','분석','기획','운영'];
+
+  function getSelected(screenEl, group) {
+    return [...screenEl.querySelectorAll(`.chips[data-group="${group}"] .chip.is-on`)]
+      .map(c => {
+        if (c.dataset.value === '기타') {
+          return screenEl.querySelector(`.etc-input[data-for="${group}"] input`).value.trim() || '기타';
+        }
+        return c.dataset.value;
+      });
+  }
+  function setChips(screenEl, group, values) {
+    screenEl.querySelectorAll(`.chips[data-group="${group}"] .chip`).forEach(c => c.classList.remove('is-on'));
+    const etcBox = screenEl.querySelector(`.etc-input[data-for="${group}"]`);
+    if (etcBox) { etcBox.classList.remove('show'); etcBox.querySelector('input').value = ''; }
+    const known = group.includes('method') ? KNOWN_METHODS : KNOWN_ROLES;
+    const custom = values.filter(v => !known.includes(v));
+    values.forEach(v => {
+      const chip = screenEl.querySelector(`.chips[data-group="${group}"] .chip[data-value="${v}"]`);
+      if (chip) chip.classList.add('is-on');
+    });
+    if (custom.length > 0) {
+      const etcChip = screenEl.querySelector(`.chips[data-group="${group}"] .chip[data-value="기타"]`);
+      if (etcChip) etcChip.classList.add('is-on');
+      if (etcBox) { etcBox.classList.add('show'); etcBox.querySelector('input').value = custom.join(', '); }
+    }
+  }
+
+  // ============================================================
+  // Tab switching
   // ============================================================
   const tabs = document.querySelectorAll('.tab');
   const screenMap = {
-    record:   document.getElementById('screen-record'),
-    list:     document.getElementById('screen-list'),
+    record: document.getElementById('screen-record'),
+    list:   document.getElementById('screen-list'),
     settings: document.getElementById('screen-settings'),
   };
   const scrollMap = {
-    record:   document.getElementById('scroll-record'),
-    list:     document.getElementById('scroll-list'),
+    record: document.getElementById('scroll-record'),
+    list:   document.getElementById('scroll-list'),
     settings: document.getElementById('scroll-settings'),
   };
 
   function switchTab(name) {
+    closeDetail();
     tabs.forEach(t => t.classList.remove('active'));
     document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
     Object.values(screenMap).forEach(s => s.classList.remove('active'));
@@ -1121,107 +1391,122 @@
   tabs.forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
 
   // ============================================================
-  // 칩 토글 + 기타 직접 입력
-  // ============================================================
-  document.querySelectorAll('.chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      chip.classList.toggle('is-on');
-      if (chip.dataset.value === '기타') {
-        const group = chip.closest('.chips').dataset.group;
-        const box = document.querySelector(`.etc-input[data-for="${group}"]`);
-        if (!box) return;
-        const isOn = chip.classList.contains('is-on');
-        box.classList.toggle('show', isOn);
-        const inp = box.querySelector('input');
-        if (isOn) setTimeout(() => inp.focus(), 60);
-        else inp.value = '';
-      }
-    });
-  });
-
-  // ============================================================
-  // 글자수 카운터
-  // ============================================================
-  const memoInput = document.getElementById('memoInput');
-  const charCount = document.getElementById('charCount');
-  memoInput.addEventListener('input', () => { charCount.textContent = memoInput.value.length; });
-
-  // ============================================================
-  // 저장 버튼
-  // ============================================================
-  document.getElementById('saveBtn').addEventListener('click', () => {
-    const memo = memoInput.value.trim();
-    if (!memo) {
-      memoInput.focus();
-      memoInput.style.outline = '1px solid rgba(255,100,100,.4)';
-      setTimeout(() => memoInput.style.outline = '', 1200);
-      return;
-    }
-
-    function getSelected(group) {
-      return [...document.querySelectorAll(`.chips[data-group="${group}"] .chip.is-on`)]
-        .map(c => {
-          if (c.dataset.value === '기타') {
-            const custom = document.querySelector(`.etc-input[data-for="${group}"] input`).value.trim();
-            return custom || '기타';
-          }
-          return c.dataset.value;
-        });
-    }
-
-    const entry = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      createdAt: new Date().toISOString(),
-      memo,
-      project: document.getElementById('projectInput').value.trim() || '(프로젝트 없음)',
-      periodYear:  parseInt(document.getElementById('periodYear').value),
-      periodMonth: parseInt(document.getElementById('periodMonth').value),
-      methods: getSelected('method'),
-      roles:   getSelected('role'),
-      favorite: false,
-    };
-
-    addEntry(entry);
-    showToast();
-    resetForm();
-    setTimeout(() => switchTab('list'), 600);
-  });
-
-  function resetForm() {
-    const now = new Date();
-    memoInput.value = '';
-    charCount.textContent = '0';
-    document.getElementById('projectInput').value = '';
-    document.getElementById('periodYear').value  = now.getFullYear();
-    document.getElementById('periodMonth').value = now.getMonth() + 1;
-    document.querySelectorAll('.chip.is-on').forEach(c => c.classList.remove('is-on'));
-    document.querySelectorAll('.etc-input.show').forEach(b => {
-      b.classList.remove('show');
-      b.querySelector('input').value = '';
-    });
-    scrollMap.record.scrollTop = 0;
-  }
-
-  // ============================================================
-  // 토스트
+  // Toast
   // ============================================================
   let toastTimer = null;
-  function showToast() {
+  function showToast(msg) {
     const toast = document.getElementById('toast');
+    toast.querySelector('.toast-msg').textContent = msg;
     toast.classList.add('show');
     if (toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
   }
 
   // ============================================================
-  // 목록 필터 상태
+  // Save (new entry)
   // ============================================================
-  let currentFilter = 'all'; // 'all' | 'fav'
-  let filterMethods = new Set(); // 선택된 방법론 (빈 Set = 전체)
-  let filterRoles   = new Set(); // 선택된 역할    (빈 Set = 전체)
+  const recordScreen = document.getElementById('screen-record');
+
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    const memo = document.getElementById('memoInput').value.trim();
+    if (!memo) {
+      const ta = document.getElementById('memoInput');
+      ta.style.outline = '1px solid rgba(255,100,100,.4)'; ta.focus();
+      setTimeout(() => ta.style.outline = '', 1200); return;
+    }
+    addEntry({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      createdAt: new Date().toISOString(),
+      memo,
+      project:     document.getElementById('projectInput').value.trim() || '(프로젝트 없음)',
+      periodYear:  parseInt(document.getElementById('periodYear').value),
+      periodMonth: parseInt(document.getElementById('periodMonth').value),
+      methods: getSelected(recordScreen, 'method'),
+      roles:   getSelected(recordScreen, 'role'),
+      favorite: false,
+    });
+    showToast('회고가 저장됐어요');
+    resetRecordForm();
+    setTimeout(() => switchTab('list'), 600);
+  });
+
+  function resetRecordForm() {
+    const now = new Date();
+    document.getElementById('memoInput').value = '';
+    document.getElementById('charCount').textContent = '0';
+    document.getElementById('projectInput').value = '';
+    document.getElementById('periodYear').value  = now.getFullYear();
+    document.getElementById('periodMonth').value = now.getMonth() + 1;
+    recordScreen.querySelectorAll('.chip.is-on').forEach(c => c.classList.remove('is-on'));
+    recordScreen.querySelectorAll('.etc-input.show').forEach(b => { b.classList.remove('show'); b.querySelector('input').value = ''; });
+    scrollMap.record.scrollTop = 0;
+  }
+
+  // ============================================================
+  // Detail / Edit screen
+  // ============================================================
+  const detailScreen = document.getElementById('screen-detail');
+  let editingId = null;
+
+  function openDetail(id) {
+    const entry = getEntries().find(e => e.id === id);
+    if (!entry) return;
+    editingId = id;
+    document.getElementById('d-memoInput').value = entry.memo;
+    document.getElementById('d-charCount').textContent = entry.memo.length;
+    document.getElementById('d-projectInput').value = entry.project || '';
+    document.getElementById('d-periodYear').value  = entry.periodYear  || new Date().getFullYear();
+    document.getElementById('d-periodMonth').value = entry.periodMonth || (new Date().getMonth() + 1);
+    setChips(detailScreen, 'd-method', entry.methods || []);
+    setChips(detailScreen, 'd-role',   entry.roles   || []);
+    document.getElementById('scroll-detail').scrollTop = 0;
+    detailScreen.classList.add('open');
+  }
+
+  function closeDetail() {
+    detailScreen.classList.remove('open');
+    editingId = null;
+  }
+
+  document.getElementById('backBtn').addEventListener('click', closeDetail);
+
+  document.getElementById('updateBtn').addEventListener('click', () => {
+    if (!editingId) return;
+    const memo = document.getElementById('d-memoInput').value.trim();
+    if (!memo) {
+      const ta = document.getElementById('d-memoInput');
+      ta.style.outline = '1px solid rgba(255,100,100,.4)'; ta.focus();
+      setTimeout(() => ta.style.outline = '', 1200); return;
+    }
+    updateEntry(editingId, {
+      memo,
+      project:     document.getElementById('d-projectInput').value.trim() || '(프로젝트 없음)',
+      periodYear:  parseInt(document.getElementById('d-periodYear').value),
+      periodMonth: parseInt(document.getElementById('d-periodMonth').value),
+      methods: getSelected(detailScreen, 'd-method'),
+      roles:   getSelected(detailScreen, 'd-role'),
+    });
+    showToast('수정이 저장됐어요');
+    closeDetail();
+    renderList();
+  });
+
+  document.getElementById('deleteBtn').addEventListener('click', () => {
+    if (!confirm('이 회고를 삭제할까요?')) return;
+    deleteEntry(editingId);
+    showToast('회고를 삭제했어요');
+    closeDetail();
+    renderList();
+  });
+
+  // ============================================================
+  // List filters
+  // ============================================================
+  let currentFilter = 'all';
+  let filterMethods = new Set();
+  let filterRoles   = new Set();
   let searchQuery   = '';
 
-  // 전체 / 즐겨찾기 필터
   document.getElementById('filterAll').addEventListener('click', () => {
     currentFilter = 'all';
     document.getElementById('filterAll').classList.add('on');
@@ -1235,223 +1520,180 @@
     renderList();
   });
 
-  // 방법론 / 수행역할 필터 토글 패널
-  let methodPanelOpen = false;
-  let rolePanelOpen   = false;
-
+  let methodPanelOpen = false, rolePanelOpen = false;
   document.getElementById('filterMethodPill').addEventListener('click', () => {
-    methodPanelOpen = !methodPanelOpen;
-    rolePanelOpen   = false;
+    methodPanelOpen = !methodPanelOpen; rolePanelOpen = false;
     document.getElementById('filterRoleSub').classList.remove('show');
     document.getElementById('filterMethodSub').classList.toggle('show', methodPanelOpen);
   });
   document.getElementById('filterRolePill').addEventListener('click', () => {
-    rolePanelOpen   = !rolePanelOpen;
-    methodPanelOpen = false;
+    rolePanelOpen = !rolePanelOpen; methodPanelOpen = false;
     document.getElementById('filterMethodSub').classList.remove('show');
     document.getElementById('filterRoleSub').classList.toggle('show', rolePanelOpen);
   });
-
-  // 검색
   document.getElementById('searchInput').addEventListener('input', e => {
-    searchQuery = e.target.value.toLowerCase();
-    renderList();
+    searchQuery = e.target.value.toLowerCase(); renderList();
   });
 
-  // ============================================================
-  // 세부 필터 칩 렌더 (저장된 태그 기반)
-  // ============================================================
   function renderFilterSubs() {
     const entries = getEntries();
     const methods = [...new Set(entries.flatMap(e => e.methods || []))].sort();
     const roles   = [...new Set(entries.flatMap(e => e.roles   || []))].sort();
-
     renderSubChips('filterMethodSub', methods, filterMethods, val => {
-      if (val === null) { filterMethods.clear(); }
-      else if (filterMethods.has(val)) { filterMethods.delete(val); }
-      else { filterMethods.add(val); }
+      if (val === null) filterMethods.clear();
+      else if (filterMethods.has(val)) filterMethods.delete(val); else filterMethods.add(val);
       updateFilterPillLabel('filterMethodPill', '방법론', filterMethods);
-      // 칩 강조 갱신
-      refreshSubChips('filterMethodSub', filterMethods);
-      renderList();
+      refreshSubChips('filterMethodSub', filterMethods); renderList();
     });
     renderSubChips('filterRoleSub', roles, filterRoles, val => {
-      if (val === null) { filterRoles.clear(); }
-      else if (filterRoles.has(val)) { filterRoles.delete(val); }
-      else { filterRoles.add(val); }
+      if (val === null) filterRoles.clear();
+      else if (filterRoles.has(val)) filterRoles.delete(val); else filterRoles.add(val);
       updateFilterPillLabel('filterRolePill', '수행역할', filterRoles);
-      refreshSubChips('filterRoleSub', filterRoles);
-      renderList();
+      refreshSubChips('filterRoleSub', filterRoles); renderList();
     });
   }
-
   function renderSubChips(containerId, options, selectedSet, onChange) {
-    const container = document.getElementById(containerId);
-    const allOn = selectedSet.size === 0;
-    const allHtml = `<div class="sub-chip${allOn ? ' on' : ''}" data-val="">전체</div>`;
-    const optsHtml = options.map(o =>
-      `<div class="sub-chip${selectedSet.has(o) ? ' on' : ''}" data-val="${escHtml(o)}">${escHtml(o)}</div>`
-    ).join('');
-    container.innerHTML = allHtml + optsHtml;
-
-    container.querySelectorAll('.sub-chip').forEach(chip => {
-      chip.addEventListener('click', () => onChange(chip.dataset.val || null));
-    });
+    const c = document.getElementById(containerId);
+    c.innerHTML = `<div class="sub-chip${selectedSet.size===0?' on':''}" data-val="">전체</div>` +
+      options.map(o=>`<div class="sub-chip${selectedSet.has(o)?' on':''}" data-val="${escHtml(o)}">${escHtml(o)}</div>`).join('');
+    c.querySelectorAll('.sub-chip').forEach(chip => chip.addEventListener('click', () => onChange(chip.dataset.val||null)));
   }
-
   function refreshSubChips(containerId, selectedSet) {
-    const container = document.getElementById(containerId);
-    container.querySelectorAll('.sub-chip').forEach(chip => {
-      const val = chip.dataset.val;
-      if (val === '') chip.classList.toggle('on', selectedSet.size === 0);
-      else            chip.classList.toggle('on', selectedSet.has(val));
+    document.getElementById(containerId).querySelectorAll('.sub-chip').forEach(chip => {
+      chip.classList.toggle('on', chip.dataset.val==='' ? selectedSet.size===0 : selectedSet.has(chip.dataset.val));
     });
   }
-
   function updateFilterPillLabel(pillId, defaultLabel, selectedSet) {
+    const chev = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
     const pill = document.getElementById(pillId);
-    const chevSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
     let label = defaultLabel;
-    if (selectedSet.size === 1) {
-      label = [...selectedSet][0];
-    } else if (selectedSet.size >= 2) {
-      label = `${[...selectedSet][0]} 외 ${selectedSet.size - 1}`;
-    }
-    pill.innerHTML = label + ' ' + chevSvg;
-    pill.classList.toggle('on', selectedSet.size > 0);
+    if (selectedSet.size===1) label=[...selectedSet][0];
+    else if (selectedSet.size>=2) label=`${[...selectedSet][0]} 외 ${selectedSet.size-1}`;
+    pill.innerHTML = label+' '+chev;
+    pill.classList.toggle('on', selectedSet.size>0);
   }
 
   // ============================================================
-  // 목록 렌더링
+  // List render
   // ============================================================
   function renderList() {
     let entries = getEntries();
-
-    if (currentFilter === 'fav') entries = entries.filter(e => e.favorite);
-    if (filterMethods.size > 0) entries = entries.filter(e => (e.methods || []).some(m => filterMethods.has(m)));
-    if (filterRoles.size > 0)   entries = entries.filter(e => (e.roles   || []).some(r => filterRoles.has(r)));
-    if (searchQuery)  entries = entries.filter(e =>
-      e.memo.toLowerCase().includes(searchQuery) ||
-      e.project.toLowerCase().includes(searchQuery) ||
-      (e.methods || []).some(m => m.toLowerCase().includes(searchQuery)) ||
-      (e.roles   || []).some(r => r.toLowerCase().includes(searchQuery)) ||
-      (formatPeriod(e.periodYear, e.periodMonth) || '').includes(searchQuery)
+    if (currentFilter==='fav') entries=entries.filter(e=>e.favorite);
+    if (filterMethods.size>0)  entries=entries.filter(e=>(e.methods||[]).some(m=>filterMethods.has(m)));
+    if (filterRoles.size>0)    entries=entries.filter(e=>(e.roles||[]).some(r=>filterRoles.has(r)));
+    if (searchQuery)           entries=entries.filter(e=>
+      e.memo.toLowerCase().includes(searchQuery)||
+      e.project.toLowerCase().includes(searchQuery)||
+      (e.methods||[]).some(m=>m.toLowerCase().includes(searchQuery))||
+      (e.roles||[]).some(r=>r.toLowerCase().includes(searchQuery))||
+      (formatPeriod(e.periodYear,e.periodMonth)||'').includes(searchQuery)
     );
 
-    const list    = document.getElementById('entryList');
-    const countEl = document.getElementById('entryCount');
-    countEl.textContent = entries.length + '개 기록';
+    const list=document.getElementById('entryList'), countEl=document.getElementById('entryCount');
+    countEl.textContent=entries.length+'개 기록';
 
-    if (entries.length === 0) {
-      list.innerHTML = `
-        <div class="empty-state">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>
-          </svg>
-          <p>${searchQuery || filterMethods.size > 0 || filterRoles.size > 0
-              ? '조건에 맞는 회고가 없어요.'
-              : currentFilter === 'fav'
-                ? '즐겨찾기한 회고가 없어요.'
-                : '아직 작성된 회고가 없어요.'}</p>
-          ${!searchQuery && filterMethods.size === 0 && filterRoles.size === 0 && currentFilter === 'all'
-            ? '<span>기록 탭에서 작성할 수 있어요</span>' : ''}
-        </div>`;
+    if (entries.length===0) {
+      list.innerHTML=`<div class="empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        <p>${searchQuery||filterMethods.size>0||filterRoles.size>0?'조건에 맞는 회고가 없어요.':currentFilter==='fav'?'즐겨찾기한 회고가 없어요.':'아직 작성된 회고가 없어요.'}</p>
+        ${!searchQuery&&filterMethods.size===0&&filterRoles.size===0&&currentFilter==='all'?'<span>기록 탭에서 작성할 수 있어요</span>':''}
+      </div>`;
       return;
     }
 
-    list.innerHTML = entries.map(entry => {
-      const period = formatPeriod(entry.periodYear, entry.periodMonth);
-      return `
-      <article class="entry-card${entry.favorite ? ' fav' : ''}" data-id="${entry.id}">
+    list.innerHTML=entries.map(entry=>{
+      const period=formatPeriod(entry.periodYear,entry.periodMonth);
+      return `<article class="entry-card${entry.favorite?' fav':''}" data-id="${entry.id}">
         <div class="card-top">
           <span class="card-date">${formatDate(entry.createdAt)}</span>
           <button class="star-btn" data-id="${entry.id}" aria-label="즐겨찾기">
             ${entry.favorite
-              ? `<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="m12 17.3-6.2 3.7 1.6-7L2 9.2l7.1-.6L12 2l2.9 6.6 7.1.6-5.4 4.8 1.6 7z"/></svg>`
-              : `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 17.3-6.2 3.7 1.6-7L2 9.2l7.1-.6L12 2l2.9 6.6 7.1.6-5.4 4.8 1.6 7z"/></svg>`
-            }
+              ?`<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="m12 17.3-6.2 3.7 1.6-7L2 9.2l7.1-.6L12 2l2.9 6.6 7.1.6-5.4 4.8 1.6 7z"/></svg>`
+              :`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 17.3-6.2 3.7 1.6-7L2 9.2l7.1-.6L12 2l2.9 6.6 7.1.6-5.4 4.8 1.6 7z"/></svg>`}
           </button>
         </div>
         <div class="card-proj"><span class="acc"></span>${escHtml(entry.project)}</div>
-        ${period ? `<div class="card-period">${period}</div>` : ''}
+        ${period?`<div class="card-period">${period}</div>`:''}
         <div class="tags">
-          ${(entry.methods || []).map(m => `<span class="tag m">${escHtml(m)}</span>`).join('')}
-          ${(entry.roles   || []).map(r => `<span class="tag r">${escHtml(r)}</span>`).join('')}
+          ${(entry.methods||[]).map(m=>`<span class="tag m">${escHtml(m)}</span>`).join('')}
+          ${(entry.roles||[]).map(r=>`<span class="tag r">${escHtml(r)}</span>`).join('')}
         </div>
         <p class="card-prev">${escHtml(entry.memo)}</p>
       </article>`;
     }).join('');
 
-    list.querySelectorAll('.star-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        toggleFav(btn.dataset.id);
-        renderList();
-      });
+    list.querySelectorAll('.star-btn').forEach(btn=>{
+      btn.addEventListener('click',e=>{ e.stopPropagation(); toggleFav(btn.dataset.id); renderList(); });
+    });
+    list.querySelectorAll('.entry-card').forEach(card=>{
+      card.addEventListener('click',()=>openDetail(card.dataset.id));
     });
   }
 
-  function escHtml(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
   // ============================================================
-  // 설정 통계
+  // Settings
   // ============================================================
   function renderStats() {
-    const entries  = getEntries();
-    const sizeRaw  = new Blob([localStorage.getItem(DB_KEY) || '']).size;
-    const maxBytes = 5 * 1024 * 1024;
-    document.getElementById('statCount').textContent = entries.length + ' notes';
-    document.getElementById('statSize').textContent  = getStorageSize();
-    document.getElementById('progFill').style.width  = Math.min(100, Math.round(sizeRaw/maxBytes*100)) + '%';
+    const entries=getEntries(), sizeRaw=new Blob([localStorage.getItem(DB_KEY)||'']).size, maxBytes=5*1024*1024;
+    document.getElementById('statCount').textContent=entries.length+' notes';
+    document.getElementById('statSize').textContent=getStorageSize();
+    document.getElementById('progFill').style.width=Math.min(100,Math.round(sizeRaw/maxBytes*100))+'%';
+    const url=getSheetsUrl();
+    const urlInput=document.getElementById('sheetsUrlInput');
+    if (urlInput&&url) urlInput.value=url;
+    updateSyncStatus();
   }
+  function updateSyncStatus() {
+    const status=document.getElementById('syncStatus');
+    if(!status) return;
+    const url=getSheetsUrl();
+    status.textContent=url?'✓ 구글 시트 연동 중':'연동되지 않음';
+    status.className='sync-status'+(url?' ok':'');
+  }
+  document.getElementById('sheetsUrlSave').addEventListener('click',()=>{
+    const url=document.getElementById('sheetsUrlInput').value.trim();
+    if(url) localStorage.setItem(SHEETS_KEY,url); else localStorage.removeItem(SHEETS_KEY);
+    updateSyncStatus();
+    showToast(url?'구글 시트 연동 완료':'연동이 해제됐어요');
+  });
 
   // ============================================================
-  // JSON 내보내기
+  // JSON export / import
   // ============================================================
-  document.getElementById('exportBtn').addEventListener('click', () => {
-    const entries = getEntries();
-    if (entries.length === 0) { alert('저장된 회고가 없습니다.'); return; }
-    const blob = new Blob([JSON.stringify(entries, null, 2)], { type: 'application/json' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `research_journal_${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
+  document.getElementById('exportBtn').addEventListener('click',()=>{
+    const entries=getEntries();
+    if(!entries.length){alert('저장된 회고가 없습니다.');return;}
+    const blob=new Blob([JSON.stringify(entries,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download=`research_journal_${new Date().toISOString().slice(0,10)}.json`; a.click();
     URL.revokeObjectURL(url);
   });
-
-  // ============================================================
-  // JSON 가져오기
-  // ============================================================
-  document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
-
-  document.getElementById('importFile').addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const imported = JSON.parse(ev.target.result);
-        if (!Array.isArray(imported)) throw new Error('형식 오류');
-        const existing    = getEntries();
-        const existingIds = new Set(existing.map(e => e.id));
-        const newEntries  = imported.filter(e => !existingIds.has(e.id));
-        saveEntries([...existing, ...newEntries].sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt)));
-        renderStats();
-        alert(`${newEntries.length}개의 회고를 가져왔습니다.`);
-      } catch { alert('올바른 JSON 파일이 아닙니다.'); }
+  document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change',e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const imported=JSON.parse(ev.target.result);
+        if(!Array.isArray(imported)) throw new Error();
+        const existing=getEntries(), existingIds=new Set(existing.map(e=>e.id));
+        const newEntries=imported.filter(e=>!existingIds.has(e.id));
+        saveEntries([...existing,...newEntries].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)));
+        renderStats(); showToast(`${newEntries.length}개 회고를 가져왔어요`);
+      }catch{alert('올바른 JSON 파일이 아닙니다.');}
     };
-    reader.readAsText(file);
-    e.target.value = '';
+    reader.readAsText(file); e.target.value='';
   });
 
   // ============================================================
-  // 초기 렌더링
+  // Init
   // ============================================================
   renderFilterSubs();
   renderList();
+  updateSyncStatus();
 </script>
+
+
+
 </body>
 </html>
